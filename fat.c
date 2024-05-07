@@ -1,48 +1,42 @@
 #include "fat.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
-// Assuming a simple in-memory FAT for demonstration
-static uint32_t *fat_table = NULL;
-static uint32_t total_clusters = 0;
-
-void init_fat(uint32_t disk_size, uint32_t cluster_size) {
-    total_clusters = disk_size / cluster_size;
-    fat_table = malloc(total_clusters * FAT_ENTRY_SIZE);
-    if (fat_table == NULL) {
-        fprintf(stderr, "Error allocating FAT table.\n");
-        exit(EXIT_FAILURE);
-    }
-    memset(fat_table, 0, total_clusters * FAT_ENTRY_SIZE);
+// initialize FAT and bitmap
+void fat_init(FAT *fat, Bitmap *bitmap) {
+    memset(fat->entries, 0, sizeof(fat->entries));  // Set all entries to 0 indicating all clusters are free
+    bitmap_init(bitmap);  // Initialize the bitmap as all free
 }
 
-uint32_t allocate_cluster(void) {
-    for (uint32_t i = 0; i < total_clusters; i++) {
-        if (fat_table[i] == 0) { // 0 indicates a free cluster
-            fat_table[i] = EOF_CLUSTER; // Mark as end of the file
-            return i;
-        }
+// allocate a free cluster and return its index
+int fat_allocate_cluster(FAT *fat, Bitmap *bitmap) {
+    int freeIndex = bitmap_find_free(bitmap, 0);  // find the first free cluster using the bitmap
+    if (freeIndex != -1) {
+        bitmap_set_bit(bitmap, freeIndex);  // mark this cluster to 1 in bitmap
+        fat->entries[freeIndex] = FAT_EOF;  // mark as EOF (last cluster in chain)
     }
-    return EOF_CLUSTER; // No free cluster found
+    return freeIndex;
 }
 
-void free_cluster(uint32_t cluster) {
-    if (cluster < total_clusters) {
-        fat_table[cluster] = 0; // Mark as free
+// free a cluster
+void fat_free_cluster(FAT *fat, Bitmap *bitmap, int cluster) {
+    if (cluster >= 0 && cluster < FAT_ENTRIES) {
+        fat->entries[cluster] = FAT_FREE;
+        bitmap_clear_bit(bitmap, cluster);  // set the bit to 0 in bitmap
     }
 }
 
-uint32_t get_next_cluster(uint32_t cluster) {
-    if (cluster < total_clusters) {
-        return fat_table[cluster];
+// get the index of the next cluster in the chain
+int fat_get_next_cluster(const FAT *fat, int current_cluster) {
+    if (current_cluster >= 0 && current_cluster < FAT_ENTRIES) {
+        return fat->entries[current_cluster];
     }
-    return EOF_CLUSTER;
+    return -1;  // error or EOF
 }
 
-void set_next_cluster(uint32_t current_cluster, uint32_t next_cluster) {
-    if (current_cluster < total_clusters) {
-        fat_table[current_cluster] = next_cluster;
+// set the next cluster in the chain
+void fat_set_next_cluster(FAT *fat, int current_cluster, int next_cluster) {
+    if (current_cluster >= 0 && current_cluster < FAT_ENTRIES && next_cluster >= 0 && next_cluster < FAT_ENTRIES) {
+        fat->entries[current_cluster] = next_cluster;
     }
 }
 
