@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "disk.h"
 
 #define DEFAULT_DISK_SIZE_MB 1
 
@@ -20,28 +21,25 @@ int format(const char *filename, int disk_size_mb) {
         printf("Error: Invalid disk size. Defaulting to %d MB.\n", DEFAULT_DISK_SIZE_MB);
         disk_size_mb = DEFAULT_DISK_SIZE_MB;
     }
-    // create/ open the disk
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        printf("Error: Unable to create or open the disk.\n");
-        return -1;
-    }
+    // init the disk
+    disk_init(filename);
     // calculate disk size in bytes
     long disk_size_bytes = disk_size_mb * 1024 * 1024;
     // alloc disk space
     char *buffer = (char *)malloc(disk_size_bytes);
     if (buffer == NULL) {
         printf("Error: Memory allocation failed.\n");
-        fclose(file);
+        disk_cleanup();
         return -1;
     }
     // clear disk space
     memset(buffer, 0, disk_size_bytes);
-    // write the formatted disk space to the file
-    fwrite(buffer, 1, disk_size_bytes, file);
-    // cleanup and close the file
+    // Write the formatted disk space to the disk
+    for (int cluster = 0; cluster < (disk_size_bytes / (BLOCK_SIZE * BLOCKS_PER_CLUSTER)); cluster++) {
+        disk_write_cluster(cluster, buffer);
+    }
+    // free the buffer
     free(buffer);
-    fclose(file);
     printf("Successfully formatted disk '%s' with size %d MB.\n", filename, disk_size_mb);
     return 0;
 }

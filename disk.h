@@ -13,5 +13,6 @@ void* disk_read_cluster(int clusterNumber);
 void disk_write_cluster(int clusterNumber, const void* data);
 int cluster_to_sector(int clusterNumber);
 void disk_cleanup();
+int format(const char *filename, int disk_size_mb);
 
 #endif /* DISK_H */
