@@ -1,3 +1,4 @@
+// use bitmap to manage free memory
 #ifndef BITMAP_H
 #define BITMAP_H
 
