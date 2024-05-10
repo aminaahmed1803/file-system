@@ -2,10 +2,19 @@
 #include <stdio.h>
 #include "dir.h"
 
-// File handle type
-typedef struct FileHandle {
-    FILE *file_ptr;  // Pointer to the file
-    // Add any additional attributes needed for file handling
+#include "dir.h"  // Assuming DirEntry and related definitions are in dir.h
+#include <stddef.h>  // For size_t definition
+
+// File mode flags
+#define FS_READ   0x1
+#define FS_WRITE  0x2
+#define FS_APPEND 0x4
+
+typedef struct {
+    DirEntry *entry;        // Pointer to the directory entry of the file
+    int currentCluster;     // Current cluster being accessed
+    int offsetInCluster;    // Byte offset within the current cluster
+    int mode;               // Mode the file was opened in
 } FileHandle;
 
 // Stat structure

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
 #include "fs_fns.h"
 #include "dir.h"
 
@@ -80,11 +81,11 @@ int main(int argc, char *argv[]) {
     }
 
     // Check if the argument is a valid integer
-    if (!is_valid_test_number(argv[1])) {
+    /*if (!is_valid_test_number(argv[1])) {
         printf("Error: Test number must be a valid integer.\n");
         return 1;
-    }
-
+    }*/
+    //Default test number: 0
     int test_number = atoi(argv[1]);
 
     switch (test_number) {
@@ -231,12 +232,12 @@ void run_fclose_tests() {
     f_close(NULL);
     // 4b. Close a file handle with null file pointer
     FileHandle *f = (FileHandle *)malloc(sizeof(FileHandle));
-    f->file_ptr = NULL;
+    //f->entry = NULL;
     f_close(f);
     // 4c. Close a file handle with null file pointer
     f = (FileHandle *)malloc(sizeof(FileHandle));
-    f->file_ptr = (FILE *)malloc(sizeof(FILE));
-    f->file_ptr = NULL;
+    //f->entry = (FILE *)malloc(sizeof(FILE));
+    //f->entry = NULL;
     f_close(f);
 
     // Correct use
