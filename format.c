@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "disk.h"
 
 //HOW TO RUN
@@ -11,9 +12,8 @@
 // *formats a 2 MB disk*
 
 #define DEFAULT_DISK_SIZE_MB 1
-#define FAT_ENTRY_SIZE 16
+#define FAT_ENTRY_SIZE 2
 #define RESERVED_SECTORS 1
-#define CLUSTERS_PER_SECTOR 4
 
 typedef struct {
     char filename[20];
@@ -22,8 +22,7 @@ typedef struct {
 } FileEntry;
 
 typedef struct {
-    FileEntry files[BLOCK_SIZE];
-    unsigned int fat_table[BLOCK_SIZE / FAT_ENTRY_SIZE]; 
+    uint16_t fat_table[DEFAULT_DISK_SIZE_MB / BLOCK_SIZE * 2]; 
 } FileSystem;
 
 FileSystem file_system;
@@ -43,29 +42,42 @@ int format(const char *filename, int disk_size_mb) {
     // calculate disk size in bytes
     long disk_size_bytes = disk_size_mb * 1024 * 1024;
     printf("disk size in bytes: %ld\n", disk_size_bytes);
-    // calculate number of clusters
-    int total_clusters = disk_size_bytes / (BLOCK_SIZE * CLUSTERS_PER_SECTOR); 
-    printf("total clusters: %d\n", total_clusters);
     // calculate FAT table size in bytes
-    long fat_table_size_bytes = total_clusters * CLUSTERS_PER_SECTOR;
+    long fat_table_size_bytes = disk_size_bytes / BLOCK_SIZE * FAT_ENTRY_SIZE;
     printf("fat table size in bytes: %ld\n", fat_table_size_bytes);
-    // initialize file system metadata
-    memset(&file_system, 0, sizeof(FileSystem));
-    // initialize FAT table (set all entries to 0xFFFFFFFF)
-    for (int i = 0; i < fat_table_size_bytes / 2; i++) {
-        file_system.fat_table[i] = 0xFFFFFFFF;
+    //malloc fat table to disk_size_bytes / BLOCK_SIZE * 2
+    uint16_t *fat_table = (uint16_t *)malloc(fat_table_size_bytes);
+    if (fat_table == NULL) {
+        printf("Error: Unable to allocate memory for FAT table.\n");
+        return -1;
     }
-    printf("fat table size: %d\n", sizeof(file_system.fat_table));
-    // initialize files (set all entries to empty)
-    memset(file_system.files, 0, sizeof(file_system.files));
+    int remaining_blocks = (disk_size_bytes - fat_table_size_bytes) / BLOCK_SIZE;
+    printf("remaining blocks: %d\n", remaining_blocks);
+    //memset a size 512 data block with zeroes
+    char *data_block = (char *)malloc(BLOCK_SIZE);
+    if (data_block == NULL) {
+        printf("Error: Unable to allocate memory for data block.\n");
+        return -1;
+    }
+    
+    /*// initialize file system metadata
+    memset(&file_system, 0, sizeof(FileSystem));
+    // initialize FAT table (set all entries to 0)
+    for (int i = 0; i < fat_table_size_bytes / 2; i++) {
+        file_system.fat_table[i] = 0;
+    }
+    printf("fat table size: %d\n", sizeof(file_system.fat_table));*/
     // write file system data to disk file using fopen, fwrite, fclose
     FILE *file = fopen(filename, "wb");
     if (file == NULL) {
         printf("Error: Unable to open file '%s' for writing.\n", filename);
         return -1;
     }
-    fwrite(&file_system, sizeof(FileSystem), 1, file);
-    printf("filesystem size: %d\n", sizeof(FileSystem));
+    fwrite(&file_system, *fat_table, 1, file);
+    for(int i = 0; i < remaining_blocks; i++) {
+        fwrite(data_block, BLOCK_SIZE, 1, file);
+    }
+    //printf("filesystem size: %d\n", sizeof(FileSystem));
     fclose(file);
     printf("Successfully formatted disk '%s' with size %d MB.\n", filename, disk_size_mb);
     return 0;
