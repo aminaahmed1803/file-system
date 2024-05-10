@@ -1,0 +1,5 @@
+bitmap.h/c: to manage free memory
+disk.h/c: functions to interact with physical disk
+dir.h/c: directory implementation
+fat.h/c: functions to travel in the virtual memory (such as cluster)
+fslib.h/c: fs library functions
