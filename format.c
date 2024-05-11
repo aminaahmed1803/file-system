@@ -15,18 +15,6 @@
 #define FAT_ENTRY_SIZE 2
 #define RESERVED_SECTORS 1
 
-typedef struct {
-    char filename[20];
-    int size;
-    int start_cluster;
-} FileEntry;
-
-typedef struct {
-    uint16_t fat_table[DEFAULT_DISK_SIZE_MB / BLOCK_SIZE * 2]; 
-} FileSystem;
-
-FileSystem file_system;
-
 // format: filename, disk size (in mb)
 int format(const char *filename, int disk_size_mb) {
     // handle filename
